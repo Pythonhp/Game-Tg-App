@@ -205,7 +205,6 @@
             pointer-events: none;
         }
 
-        /* Дуга меню влево-вверх */
         .fab-container.open .fab-item:nth-child(1) {
             opacity: 1;
             transform: translate(70px, -10px) scale(1);
@@ -224,13 +223,10 @@
             pointer-events: auto;
         }
 
-        /* Модальное окно (Мини-игра Яблоки) */
+        /* Общие стилевые модальные окна */
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(5px);
             z-index: 200;
@@ -240,9 +236,7 @@
             padding: 20px;
         }
 
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
 
         .modal-card {
             background: var(--card-bg);
@@ -255,39 +249,122 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
 
-        .apple-field {
+        .game-field {
             position: relative;
             width: 100%;
-            height: 240px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px dashed rgba(255, 255, 255, 0.15);
+            height: 250px;
             border-radius: 12px;
             margin: 12px 0;
             overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .apple-item {
+        /* 1. Работа: Провода (Фон электрощитка) */
+        .bg-wires {
+            background: #1c1d22;
+            background-image: linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .wire-node {
             position: absolute;
-            width: 32px;
-            height: 32px;
-            font-size: 24px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 3px solid #111;
             cursor: pointer;
-            user-select: none;
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: transform 0.15s ease, opacity 0.15s ease;
-            animation: applePop 0.3s ease-out;
+            font-size: 10px;
+            font-weight: bold;
+            color: #000;
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
         }
 
-        .apple-item:active {
-            transform: scale(1.3);
+        /* 2. Работа: Мусор (Фон микрорайона без деталей) */
+        .bg-quarter {
+            background: linear-gradient(180deg, #2b303a 0%, #181a20 100%);
         }
 
-        @keyframes applePop {
-            0% { transform: scale(0); }
-            80% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+        .trash-bin {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 70px;
+            height: 80px;
+            background: #2ec4b6;
+            border: 3px solid #1a1a1a;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+        }
+
+        .trash-bag {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #111;
+            border-radius: 50% 50% 40% 40%;
+            border: 2px solid #333;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            touch-action: none;
+        }
+
+        /* 3. Работа: Тир / Полигон (Фон полигона без деталей) */
+        .bg-range {
+            background: linear-gradient(180deg, #3d405b 0%, #81b29a 70%, #f4f1de 100%);
+            cursor: crosshair;
+        }
+
+        .target-item {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #e71d36 30%, #fff 31%, #fff 60%, #e71d36 61%);
+            border: 2px solid #000;
+            cursor: pointer;
+        }
+
+        .gun-view {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 90px;
+            background: #222;
+            border-radius: 8px 8px 0 0;
+            border: 2px solid #444;
+            pointer-events: none;
+        }
+
+        .crosshair {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,0,0,0.5);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Яблоки */
+        .apple-item {
+            position: absolute;
+            width: 32px; height: 32px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
     </style>
 </head>
@@ -321,8 +398,8 @@
             <div class="card-header">
                 <span class="card-title">💼 Операционная деятельность</span>
             </div>
-            <div class="card-desc">Выполнение текущих задач для генерации первичного капитала. Расход ресурса: 15⚡️.</div>
-            <button class="btn btn-action" id="btn-work" onclick="doWork()">Выполнить задачу (+$50)</button>
+            <div class="card-desc">Выполните случайное поручение для заработка капитала. Расход ресурса: 15⚡️.</div>
+            <button class="btn btn-action" id="btn-work" onclick="startRandomWork()">Выполнить задачу (+$50)</button>
         </div>
 
         <div class="card">
@@ -363,8 +440,18 @@
             <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">
                 Соберите все яблоки: <span id="appleCount" style="color: var(--accent-gold); font-weight: bold;">0/10</span>
             </div>
-            <div class="apple-field" id="appleField"></div>
-            <button class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-dim);" onclick="closeAppleGame()">Отмена</button>
+            <div class="game-field bg-wires" id="appleField" style="background:#111;"></div>
+            <button class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-dim);" onclick="closeModal('appleModal')">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Рабочие мини-игры -->
+    <div class="modal-overlay" id="workModal">
+        <div class="modal-card">
+            <div style="font-size: 16px; font-weight: 600;" id="workTitle">Задача</div>
+            <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;" id="workDesc">Прогресс...</div>
+            <div class="game-field" id="workField"></div>
+            <button class="btn" style="background: rgba(255,255,255,0.1); color: var(--text-dim);" onclick="closeModal('workModal')">Отмена</button>
         </div>
     </div>
 
@@ -389,14 +476,12 @@
             ]
         };
 
-        let collectedApples = 0;
-        const totalApples = 10;
+        let lastWorkIndex = -1;
+        let gameAnimFrame = null;
 
         function loadState() {
             const saved = localStorage.getItem('corporate_game_state');
-            if (saved) {
-                state = Object.assign(state, JSON.parse(saved));
-            }
+            if (saved) state = Object.assign(state, JSON.parse(saved));
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 document.getElementById('user-name').innerText = tg.initDataUnsafe.user.first_name || 'Руководитель';
             }
@@ -423,40 +508,34 @@
             document.getElementById('fabContainer').classList.remove('open');
         }
 
-        /* Отрисовка ПИКСЕЛЬНОГО персонажа в полный рост */
+        function closeModal(id) {
+            triggerVibro();
+            document.getElementById(id).classList.remove('active');
+            if (gameAnimFrame) cancelAnimationFrame(gameAnimFrame);
+        }
+
+        /* РИСОВАНИЕ ПИКСЕЛЬНОГО ПЕРСОНАЖА */
         function drawAvatar() {
             const canvas = document.getElementById('avatarCanvas');
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const p = 4; // Размер одного пикселя
-            ctx.fillStyle = '#00000000';
-
-            // Матрица пиксельного персонажа (35x35) в полный рост
+            const p = 4;
             const pixelMap = [
-                // Прическа
                 {x: 14, y: 4, w: 7, h: 2, c: '#2b1d0c'},
-                // Голова
                 {x: 13, y: 6, w: 9, h: 6, c: '#ffdbac'},
-                // Пиксельные очки
                 {x: 12, y: 8, w: 5, h: 2, c: '#111'},
                 {x: 18, y: 8, w: 5, h: 2, c: '#111'},
                 {x: 17, y: 8, w: 1, h: 1, c: '#fff'},
-                // Пиджак и туловище
                 {x: 11, y: 12, w: 13, h: 10, c: '#1a233a'},
-                // Белая рубашка
                 {x: 16, y: 12, w: 3, h: 6, c: '#ffffff'},
-                // Красный пиксельный галстук
                 {x: 17, y: 13, w: 1, h: 7, c: '#e71d36'},
-                // Руки
                 {x: 9, y: 13, w: 2, h: 8, c: '#1a233a'},
                 {x: 24, y: 13, w: 2, h: 8, c: '#1a233a'},
                 {x: 9, y: 21, w: 2, h: 2, c: '#ffdbac'},
                 {x: 24, y: 21, w: 2, h: 2, c: '#ffdbac'},
-                // Брюки
                 {x: 12, y: 22, w: 5, h: 8, c: '#111625'},
                 {x: 18, y: 22, w: 5, h: 8, c: '#111625'},
-                // Ботинки
                 {x: 11, y: 30, w: 6, h: 2, c: '#ffb703'},
                 {x: 18, y: 30, w: 6, h: 2, c: '#ffb703'}
             ];
@@ -467,60 +546,250 @@
             });
         }
 
-        /* Механика сбора яблок */
+        /* МИНИ-ИГРА: ЯБЛОКИ */
         function openAppleGame() {
             triggerVibro();
-            collectedApples = 0;
-            document.getElementById('appleCount').innerText = `${collectedApples}/${totalApples}`;
+            let collected = 0;
+            const total = 10;
+            document.getElementById('appleCount').innerText = `${collected}/${total}`;
             const field = document.getElementById('appleField');
             field.innerHTML = '';
 
-            for (let i = 0; i < totalApples; i++) {
+            for (let i = 0; i < total; i++) {
                 const apple = document.createElement('div');
                 apple.className = 'apple-item';
                 apple.innerText = '🍎';
-                
-                // Случайные координаты на поле
-                const posX = Math.floor(Math.random() * 260);
-                const posY = Math.floor(Math.random() * 190);
-                apple.style.left = `${posX}px`;
-                apple.style.top = `${posY}px`;
+                apple.style.left = `${Math.random() * 250}px`;
+                apple.style.top = `${Math.random() * 190}px`;
 
                 apple.onclick = function () {
                     triggerVibro();
-                    this.style.opacity = '0';
-                    this.style.transform = 'scale(0)';
-                    this.style.pointerEvents = 'none';
-                    collectedApples++;
-                    document.getElementById('appleCount').innerText = `${collectedApples}/${totalApples}`;
-
-                    if (collectedApples >= totalApples) {
+                    this.remove();
+                    collected++;
+                    document.getElementById('appleCount').innerText = `${collected}/${total}`;
+                    if (collected >= total) {
                         setTimeout(() => {
                             state.energy = Math.min(state.maxEnergy, state.energy + 50);
                             saveState();
-                            closeAppleGame();
+                            closeModal('appleModal');
                         }, 200);
                     }
                 };
-
                 field.appendChild(apple);
             }
-
             document.getElementById('appleModal').classList.add('active');
         }
 
-        function closeAppleGame() {
-            triggerVibro();
-            document.getElementById('appleModal').classList.remove('active');
+        /* СИСТЕМА СЛУЧАЙНЫХ РАБОТ */
+        function startRandomWork() {
+            if (state.energy < 15) return;
+
+            let nextIndex;
+            do {
+                nextIndex = Math.floor(Math.random() * 3);
+            } while (nextIndex === lastWorkIndex);
+            lastWorkIndex = nextIndex;
+
+            state.energy -= 15;
+            saveState();
+
+            if (nextIndex === 0) gameWires();
+            else if (nextIndex === 1) gameTrash();
+            else if (nextIndex === 2) gameShooting();
         }
 
-        function doWork() {
-            if (state.energy >= 15) {
-                state.energy -= 15;
-                state.money += 50;
+        function completeWork() {
+            triggerVibro();
+            state.money += 50;
+            saveState();
+            setTimeout(() => closeModal('workModal'), 300);
+        }
+
+        /* 1. МИНИ-ИГРА: Соединение 5 проводов */
+        function gameWires() {
+            document.getElementById('workTitle').innerText = 'Техническое обслуживание';
+            document.getElementById('workDesc').innerText = 'Соедините парные контакты (0/5)';
+            const field = document.getElementById('workField');
+            field.className = 'game-field bg-wires';
+            field.innerHTML = '';
+
+            const colors = ['#e71d36', '#ffb703', '#2ec4b6', '#3a86ff', '#ffffff'];
+            let selectedNode = null;
+            let connectedCount = 0;
+
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.style.cssText = "position:absolute; width:100%; height:100%; pointer-events:none;";
+            field.appendChild(svg);
+
+            colors.forEach((color, idx) => {
+                // Левая колонка
+                const leftNode = document.createElement('div');
+                leftNode.className = 'wire-node';
+                leftNode.style.background = color;
+                leftNode.style.left = '20px';
+                leftNode.style.top = `${20 + idx * 42}px`;
+                leftNode.dataset.color = color;
+                leftNode.dataset.side = 'left';
+
+                // Правая колонка (перемешана)
+                const rightNode = document.createElement('div');
+                rightNode.className = 'wire-node';
+                rightNode.style.background = color;
+                rightNode.style.right = '20px';
+                rightNode.style.top = `${20 + ((idx + 2) % 5) * 42}px`;
+                rightNode.dataset.color = color;
+                rightNode.dataset.side = 'right';
+
+                field.appendChild(leftNode);
+                field.appendChild(rightNode);
+            });
+
+            field.onclick = function(e) {
+                const target = e.target.closest('.wire-node');
+                if (!target || target.dataset.done) return;
+
                 triggerVibro();
-                saveState();
+                if (!selectedNode) {
+                    selectedNode = target;
+                    target.style.transform = 'scale(1.2)';
+                } else {
+                    if (selectedNode.dataset.side !== target.dataset.side && selectedNode.dataset.color === target.dataset.color) {
+                        // Успешное соединение
+                        selectedNode.dataset.done = 'true';
+                        target.dataset.done = 'true';
+                        
+                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        line.setAttribute("x1", selectedNode.offsetLeft + 14);
+                        line.setAttribute("y1", selectedNode.offsetTop + 14);
+                        line.setAttribute("x2", target.offsetLeft + 14);
+                        line.setAttribute("y2", target.offsetTop + 14);
+                        line.setAttribute("stroke", target.dataset.color);
+                        line.setAttribute("stroke-width", "4");
+                        svg.appendChild(line);
+
+                        connectedCount++;
+                        document.getElementById('workDesc').innerText = `Соединено пар: ${connectedCount}/5`;
+                        if (connectedCount === 5) completeWork();
+                    }
+                    selectedNode.style.transform = 'scale(1)';
+                    selectedNode = null;
+                }
+            };
+
+            document.getElementById('workModal').classList.add('active');
+        }
+
+        /* 2. МИНИ-ИГРА: Перетаскивание 5 пакетов мусора */
+        function gameTrash() {
+            document.getElementById('workTitle').innerText = 'Утилизация отходов';
+            document.getElementById('workDesc').innerText = 'Перетащите пакеты в контейнер (0/5)';
+            const field = document.getElementById('workField');
+            field.className = 'game-field bg-quarter';
+            field.innerHTML = '<div class="trash-bin">🗑️</div>';
+
+            let disposed = 0;
+            const bin = field.querySelector('.trash-bin');
+
+            for (let i = 0; i < 5; i++) {
+                const bag = document.createElement('div');
+                bag.className = 'trash-bag';
+                bag.innerText = '🗑️';
+                bag.style.left = `${15 + (i * 45)}px`;
+                bag.style.top = `${20 + (i % 2) * 50}px`;
+
+                let isDragging = false;
+
+                const onMove = (e) => {
+                    if (!isDragging) return;
+                    const rect = field.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                    let x = clientX - rect.left - 20;
+                    let y = clientY - rect.top - 20;
+
+                    bag.style.left = `${x}px`;
+                    bag.style.top = `${y}px`;
+
+                    // Проверка попадания в бак
+                    const binRect = bin.getBoundingClientRect();
+                    const bagRect = bag.getBoundingClientRect();
+
+                    if (!(bagRect.right < binRect.left || bagRect.left > binRect.right || bagRect.bottom < binRect.top || bagRect.top > binRect.bottom)) {
+                        isDragging = false;
+                        bag.remove();
+                        triggerVibro();
+                        disposed++;
+                        document.getElementById('workDesc').innerText = `Утилизировано: ${disposed}/5`;
+                        if (disposed === 5) completeWork();
+                    }
+                };
+
+                const onStart = () => { isDragging = true; triggerVibro(); };
+                const onEnd = () => { isDragging = false; };
+
+                bag.addEventListener('mousedown', onStart);
+                bag.addEventListener('touchstart', onStart);
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('touchmove', onMove);
+                window.addEventListener('mouseup', onEnd);
+                window.addEventListener('touchend', onEnd);
+
+                field.appendChild(bag);
             }
+
+            document.getElementById('workModal').classList.add('active');
+        }
+
+        /* 3. МИНИ-ИГРА: Стрельба по движущимся целям */
+        function gameShooting() {
+            document.getElementById('workTitle').innerText = 'Учебные стрельбы';
+            document.getElementById('workDesc').innerText = 'Поразите 5 мишеней (0/5)';
+            const field = document.getElementById('workField');
+            field.className = 'game-field bg-range';
+            field.innerHTML = '<div class="gun-view"></div><div class="crosshair"></div>';
+
+            let hits = 0;
+            const targets = [];
+
+            for (let i = 0; i < 5; i++) {
+                const t = document.createElement('div');
+                t.className = 'target-item';
+                t.style.top = `${25 + i * 35}px`;
+                t.style.left = `${Math.random() * 200}px`;
+                field.appendChild(t);
+
+                targets.push({
+                    el: t,
+                    x: parseFloat(t.style.left),
+                    speed: (1.2 + Math.random() * 1.5) * (i % 2 === 0 ? 1 : -1)
+                });
+
+                t.onclick = function() {
+                    triggerVibro();
+                    this.remove();
+                    hits++;
+                    document.getElementById('workDesc').innerText = `Поражено мишеней: ${hits}/5`;
+                    if (hits === 5) {
+                        cancelAnimationFrame(gameAnimFrame);
+                        completeWork();
+                    }
+                };
+            }
+
+            function animateTargets() {
+                targets.forEach(t => {
+                    if (t.el.parentNode) {
+                        t.x += t.speed;
+                        if (t.x > 250 || t.x < 0) t.speed *= -1;
+                        t.el.style.left = `${t.x}px`;
+                    }
+                });
+                gameAnimFrame = requestAnimationFrame(animateTargets);
+            }
+
+            animateTargets();
+            document.getElementById('workModal').classList.add('active');
         }
 
         function buyBusiness(index) {
@@ -590,15 +859,12 @@
 
         setInterval(() => {
             let passiveIncome = 0;
-            state.businesses.forEach(b => {
-                passiveIncome += b.count * b.income;
-            });
+            state.businesses.forEach(b => { passiveIncome += b.count * b.income; });
             state.money += passiveIncome;
 
             if (state.energy < state.maxEnergy) {
                 state.energy = Math.min(state.maxEnergy, state.energy + 1);
             }
-
             saveState();
         }, 1000);
 
