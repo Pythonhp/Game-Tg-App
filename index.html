@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Бот Бандит WebApp</title>
+    <title>Корпоративная система управления</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -11,7 +11,7 @@
             --card-bg: rgba(26, 29, 38, 0.95);
             --accent-gold: #ffb703;
             --accent-green: #2ec4b6;
-            --accent-red: #e71d36;
+            --accent-blue: #3a86ff;
             --text-color: #ffffff;
             --text-dim: #8d99ae;
         }
@@ -30,11 +30,11 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             overflow: hidden;
+            position: relative;
         }
 
-        /* Шапка ресурсов */
+        /* Шапка показателей */
         .header {
             background: var(--card-bg);
             padding: 12px 16px;
@@ -43,6 +43,7 @@
             align-items: center;
             border-bottom: 1px solid rgba(255,255,255,0.08);
             backdrop-filter: blur(10px);
+            z-index: 10;
         }
 
         .resource-item {
@@ -55,22 +56,24 @@
             font-size: 11px;
             color: var(--text-dim);
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .resource-value {
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 15px;
+            font-weight: 600;
         }
 
         .val-money { color: var(--accent-green); }
         .val-authority { color: var(--accent-gold); }
-        .val-energy { color: #3a86ff; }
+        .val-energy { color: var(--accent-blue); }
 
-        /* Контентные экраны */
+        /* Контентные разделы */
         .content {
             flex: 1;
             overflow-y: auto;
             padding: 15px;
+            padding-bottom: 90px;
             display: none;
         }
 
@@ -78,7 +81,6 @@
             display: block;
         }
 
-        /* Персонаж на Canvas */
         .avatar-container {
             text-align: center;
             margin-bottom: 15px;
@@ -86,30 +88,30 @@
         }
 
         canvas#avatarCanvas {
-            background: radial-gradient(circle, rgba(255,183,3,0.15) 0%, rgba(0,0,0,0) 70%);
+            background: radial-gradient(circle, rgba(255,183,3,0.12) 0%, rgba(0,0,0,0) 70%);
             border-radius: 50%;
         }
 
-        /* Карточки действий и бизнеса */
+        /* Информационные карточки */
         .card {
             background: var(--card-bg);
-            border-radius: 16px;
+            border-radius: 14px;
             padding: 14px;
             margin-bottom: 12px;
             border: 1px solid rgba(255,255,255,0.05);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .card-title {
             font-size: 15px;
-            font-weight: bold;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -118,17 +120,18 @@
         .card-desc {
             font-size: 12px;
             color: var(--text-dim);
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            line-height: 1.4;
         }
 
-        /* Кнопки */
+        /* Элементы управления */
         .btn {
             width: 100%;
             padding: 12px;
-            border-radius: 12px;
+            border-radius: 10px;
             border: none;
-            font-weight: bold;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 13px;
             cursor: pointer;
             transition: transform 0.1s, opacity 0.2s;
             display: flex;
@@ -138,170 +141,192 @@
         }
 
         .btn:active {
-            transform: scale(0.97);
+            transform: scale(0.98);
         }
 
         .btn:disabled {
-            opacity: 0.4;
+            opacity: 0.35;
             cursor: not-allowed;
         }
 
         .btn-primary { background: var(--accent-green); color: #000; }
         .btn-gold { background: var(--accent-gold); color: #000; }
-        .btn-action { background: #3a86ff; color: #fff; }
+        .btn-action { background: var(--accent-blue); color: #fff; }
 
-        /* Прогресс-бар */
-        .progress-bar-bg {
-            background: rgba(255,255,255,0.1);
-            height: 6px;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 6px;
+        /* Плавающее круговое меню (FAB) */
+        .fab-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
         }
 
-        .progress-bar-fill {
-            background: #3a86ff;
-            height: 100%;
-            width: 100%;
-            transition: width 0.3s;
-        }
-
-        /* Нижнее меню навигации */
-        .nav-bar {
-            background: var(--card-bg);
+        .fab-main {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent-gold);
+            color: #000;
             display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            border-top: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            color: var(--text-dim);
-            font-size: 11px;
+            font-size: 24px;
+            box-shadow: 0 4px 20px rgba(255, 183, 3, 0.4);
             cursor: pointer;
-            gap: 4px;
-            flex: 1;
+            transition: transform 0.3s ease;
         }
 
-        .nav-item.active {
-            color: var(--accent-gold);
-            font-weight: bold;
+        .fab-container.open .fab-main {
+            transform: rotate(45deg);
         }
 
-        .nav-icon {
+        .fab-menu {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 56px;
+            height: 56px;
+            pointer-events: none;
+        }
+
+        .fab-item {
+            position: absolute;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
             font-size: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            cursor: pointer;
+            opacity: 0;
+            transform: translate(0, 0) scale(0.5);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: none;
+        }
+
+        /* Расположение кнопок по дуге */
+        .fab-container.open .fab-item:nth-child(1) {
+            opacity: 1;
+            transform: translate(-70px, -10px) scale(1);
+            pointer-events: auto;
+        }
+
+        .fab-container.open .fab-item:nth-child(2) {
+            opacity: 1;
+            transform: translate(-55px, -55px) scale(1);
+            pointer-events: auto;
+        }
+
+        .fab-container.open .fab-item:nth-child(3) {
+            opacity: 1;
+            transform: translate(-10px, -70px) scale(1);
+            pointer-events: auto;
         }
     </style>
 </head>
 <body>
 
-    <!-- Шапка с ресурсами -->
+    <!-- Шапка показателей -->
     <div class="header">
         <div class="resource-item">
-            <span class="resource-label">Наличка</span>
+            <span class="resource-label">Капитал</span>
             <span class="resource-value val-money" id="res-money">$0</span>
         </div>
         <div class="resource-item">
-            <span class="resource-label">Авторитет</span>
+            <span class="resource-label">Репутация</span>
             <span class="resource-value val-authority" id="res-authority">⭐️ 0</span>
         </div>
         <div class="resource-item">
-            <span class="resource-label">Энергия</span>
+            <span class="resource-label">Ресурс</span>
             <span class="resource-value val-energy" id="res-energy">⚡️ 100/100</span>
         </div>
     </div>
 
-    <!-- Вкладка 1: Профиль и Персонаж -->
+    <!-- Раздел 1: Профиль -->
     <div id="page-profile" class="content active">
         <div class="avatar-container">
-            <canvas id="avatarCanvas" width="160" height="160"></canvas>
-            <div style="font-size: 18px; font-weight: bold; margin-top: 5px;" id="user-name">Бандит</div>
-            <div style="font-size: 12px; color: var(--text-dim);" id="user-status">Новичк на районе</div>
+            <canvas id="avatarCanvas" width="140" height="140"></canvas>
+            <div style="font-size: 18px; font-weight: 600; margin-top: 6px;" id="user-name">Руководитель</div>
+            <div style="font-size: 12px; color: var(--text-dim);" id="user-status">Стажер</div>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <span class="card-title">👊 Суета на районе</span>
+                <span class="card-title">💼 Операционная деятельность</span>
             </div>
-            <div class="card-desc">Покрутиться на районе и заработать немного легких денег. Тратит 15⚡️.</div>
-            <button class="btn btn-action" id="btn-work" onclick="doWork()">Работать (+$50)</button>
+            <div class="card-desc">Выполнение текущих задач для генерации первичного капитала. Расход ресурса: 15⚡️.</div>
+            <button class="btn btn-action" id="btn-work" onclick="doWork()">Выполнить задачу (+$50)</button>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <span class="card-title">☕️ Отдых и Восстановление</span>
+                <span class="card-title">☕️ Восстановление ресурсов</span>
             </div>
-            <div class="card-desc">Быстро восстановить энергию за счет чилла.</div>
-            <button class="btn btn-primary" onclick="rest()">Отдохнуть (+50⚡️)</button>
+            <div class="card-desc">Восстановление операционной эффективности.</div>
+            <button class="btn btn-primary" onclick="rest()">Перерыв (+50⚡️)</button>
         </div>
     </div>
 
-    <!-- Вкладка 2: Город и Бизнес -->
+    <!-- Раздел 2: Бизнес -->
     <div id="page-city" class="content">
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">Твой Бизнес (Пассивный доход)</div>
+        <div style="font-size: 15px; font-weight: 600; margin-bottom: 12px;">Коммерческие активы</div>
         <div id="business-list"></div>
     </div>
 
-    <!-- Вкладка 3: Имущество -->
+    <!-- Раздел 3: Имущество -->
     <div id="page-property" class="content">
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">Автосалон и Недвижимость</div>
+        <div style="font-size: 15px; font-weight: 600; margin-bottom: 12px;">Корпоративные активы и статусы</div>
         <div id="property-list"></div>
     </div>
 
-    <!-- Нижняя навигация -->
-    <div class="nav-bar">
-        <div class="nav-item active" onclick="switchTab('profile', this)">
-            <span class="nav-icon">👤</span>
-            <span>Профиль</span>
+    <!-- Круговое меню (FAB) -->
+    <div class="fab-container" id="fabContainer">
+        <div class="fab-menu">
+            <div class="fab-item" onclick="switchTab('profile')">👤</div>
+            <div class="fab-item" onclick="switchTab('city')">🏢</div>
+            <div class="fab-item" onclick="switchTab('property')">🚗</div>
         </div>
-        <div class="nav-item" onclick="switchTab('city', this)">
-            <span class="nav-icon">🏙️</span>
-            <span>Город</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('property', this)">
-            <span class="nav-icon">🚗</span>
-            <span>Имущество</span>
-        </div>
+        <div class="fab-main" onclick="toggleFab()">+</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Состояние игры
         let state = {
             money: 100,
             authority: 0,
             energy: 100,
             maxEnergy: 100,
             businesses: [
-                { id: 'shaurma', title: 'Шаурмичная', cost: 150, income: 2, count: 0, icon: '🥙' },
-                { id: 'carwash', title: 'Автомойка', cost: 800, income: 12, count: 0, icon: '🚗' },
-                { id: 'club', title: 'Ночной Клуб', cost: 5000, income: 75, count: 0, icon: '🎙️' }
+                { id: 'kiosk', title: 'Торговая точка', cost: 150, income: 2, count: 0, icon: '🏪' },
+                { id: 'service', title: 'Сервисный центр', cost: 800, income: 12, count: 0, icon: '🛠️' },
+                { id: 'center', title: 'Деловой центр', cost: 5000, income: 75, count: 0, icon: '🏢' }
             ],
             properties: [
-                { id: 'chain', title: 'Золотая цепь', cost: 300, authority: 10, bought: false, icon: '⛓️' },
-                { id: 'bmw', title: 'Черная Бэха', cost: 2500, authority: 80, bought: false, icon: '🚘' },
-                { id: 'penthouse', title: 'Пентхаус в центре', cost: 15000, authority: 500, bought: false, icon: '🏙️' }
+                { id: 'accessory', title: 'Представительские часы', cost: 300, authority: 10, bought: false, icon: '⌚' },
+                { id: 'car', title: 'Премиальный седан', cost: 2500, authority: 80, bought: false, icon: '🚘' },
+                { id: 'office', title: 'Главный офис', cost: 15000, authority: 500, bought: false, icon: '🏙️' }
             ]
         };
 
-        // Загрузка / Сохранение
         function loadState() {
-            const saved = localStorage.getItem('bandit_game_state_v1');
+            const saved = localStorage.getItem('corporate_game_state');
             if (saved) {
                 state = Object.assign(state, JSON.parse(saved));
             }
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                document.getElementById('user-name').innerText = tg.initDataUnsafe.user.first_name || 'Бандит';
+                document.getElementById('user-name').innerText = tg.initDataUnsafe.user.first_name || 'Руководитель';
             }
         }
 
         function saveState() {
-            localStorage.setItem('bandit_game_state_v1', JSON.stringify(state));
+            localStorage.setItem('corporate_game_state', JSON.stringify(state));
             updateUI();
         }
 
@@ -309,51 +334,50 @@
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         }
 
-        // Переключение вкладок
-        function switchTab(tabId, el) {
+        function toggleFab() {
             triggerVibro();
-            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            
-            document.getElementById(`page-${tabId}`).classList.add('active');
-            if (el) el.classList.add('active');
+            document.getElementById('fabContainer').classList.toggle('open');
         }
 
-        // Отрисовка персонажа на Canvas
+        function switchTab(tabId) {
+            triggerVibro();
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`page-${tabId}`).classList.add('active');
+            document.getElementById('fabContainer').classList.remove('open');
+        }
+
         function drawAvatar() {
             const canvas = document.getElementById('avatarCanvas');
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Тело / Худи
-            ctx.fillStyle = '#22252f';
+            // Костюм
+            ctx.fillStyle = '#1c2331';
             ctx.beginPath();
-            ctx.arc(80, 150, 45, Math.PI, 0, false);
+            ctx.arc(70, 135, 40, Math.PI, 0, false);
+            ctx.fill();
+
+            // Рубашка
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(60, 95);
+            ctx.lineTo(70, 115);
+            ctx.lineTo(80, 95);
             ctx.fill();
 
             // Голова
             ctx.fillStyle = '#ffdbac';
             ctx.beginPath();
-            ctx.arc(80, 80, 32, 0, Math.PI * 2);
+            ctx.arc(70, 70, 28, 0, Math.PI * 2);
             ctx.fill();
 
-            // Очки Бандита
-            ctx.fillStyle = '#111';
-            ctx.fillRect(58, 72, 20, 12);
-            ctx.fillRect(82, 72, 20, 12);
-            ctx.fillRect(75, 75, 10, 3);
-
-            // Золотая цепь (если куплена)
-            if (state.properties.find(p => p.id === 'chain' && p.bought)) {
-                ctx.strokeStyle = '#ffb703';
-                ctx.lineWidth = 4;
-                ctx.beginPath();
-                ctx.arc(80, 105, 20, 0, Math.PI);
-                ctx.stroke();
-            }
+            // Очки
+            ctx.fillStyle = '#222';
+            ctx.fillRect(50, 64, 16, 8);
+            ctx.fillRect(74, 64, 16, 8);
+            ctx.fillRect(66, 66, 8, 2);
         }
 
-        // Действия
         function doWork() {
             if (state.energy >= 15) {
                 state.energy -= 15;
@@ -376,7 +400,7 @@
             if (state.money >= b.cost) {
                 state.money -= b.cost;
                 b.count++;
-                b.cost = Math.round(b.cost * 1.3); // Увеличение цены
+                b.cost = Math.round(b.cost * 1.3);
                 triggerVibro();
                 saveState();
             }
@@ -394,23 +418,19 @@
             }
         }
 
-        // Обновление интерфейса
         function updateUI() {
             document.getElementById('res-money').innerText = `$${state.money.toLocaleString()}`;
             document.getElementById('res-authority').innerText = `⭐️ ${state.authority}`;
             document.getElementById('res-energy').innerText = `⚡️ ${state.energy}/${state.maxEnergy}`;
 
-            // Доступность кнопки работы
             document.getElementById('btn-work').disabled = state.energy < 15;
 
-            // Статус в профиле
-            let status = 'Новичок на районе';
-            if (state.authority >= 50) status = 'Уважаемый пацан';
-            if (state.authority >= 200) status = 'Авторитет города';
-            if (state.authority >= 500) status = 'Теневой Барон';
+            let status = 'Стажер';
+            if (state.authority >= 50) status = 'Предприниматель';
+            if (state.authority >= 200) status = 'Управляющий партнер';
+            if (state.authority >= 500) status = 'Глава корпорации';
             document.getElementById('user-status').innerText = status;
 
-            // Отрисовка списка бизнесов
             const bizContainer = document.getElementById('business-list');
             bizContainer.innerHTML = state.businesses.map((b, i) => `
                 <div class="card">
@@ -418,14 +438,13 @@
                         <span class="card-title">${b.icon} ${b.title} (${b.count})</span>
                         <span class="val-money">+$${b.count * b.income}/сек</span>
                     </div>
-                    <div class="card-desc">Приносит $${b.income}/сек с одного заведения.</div>
+                    <div class="card-desc">Доходность: $${b.income}/сек за единицу.</div>
                     <button class="btn btn-gold" ${state.money < b.cost ? 'disabled' : ''} onclick="buyBusiness(${i})">
-                        Купить за $${b.cost.toLocaleString()}
+                        Приобрести за $${b.cost.toLocaleString()}
                     </button>
                 </div>
             `).join('');
 
-            // Отрисовка списка имущества
             const propContainer = document.getElementById('property-list');
             propContainer.innerHTML = state.properties.map((p, i) => `
                 <div class="card">
@@ -434,24 +453,21 @@
                         <span class="val-authority">+⭐️ ${p.authority}</span>
                     </div>
                     ${p.bought 
-                        ? `<button class="btn" disabled style="background:#222; color:#555;">Уже куплено</button>`
-                        : `<button class="btn btn-primary" ${state.money < p.cost ? 'disabled' : ''} onclick="buyProperty(${i})">                              Купить за $${p.cost.toLocaleString()}
+                        ? `<button class="btn" disabled style="background:#222; color:#555;">Приобретено</button>`
+                        : `<button class="btn btn-primary" ${state.money < p.cost ? 'disabled' : ''} onclick="buyProperty(${i})">                              Приобрести за $${p.cost.toLocaleString()}
                            </button>`
                     }
                 </div>
             `).join('');
         }
 
-        // Игровой цикл (1 раз в секунду)
         setInterval(() => {
-            // Сбор пассивного дохода
             let passiveIncome = 0;
             state.businesses.forEach(b => {
                 passiveIncome += b.count * b.income;
             });
             state.money += passiveIncome;
 
-            // Авто-восстановление энергии (1⚡️ в секунду)
             if (state.energy < state.maxEnergy) {
                 state.energy = Math.min(state.maxEnergy, state.energy + 1);
             }
@@ -459,7 +475,6 @@
             saveState();
         }, 1000);
 
-        // Инициализация
         loadState();
         drawAvatar();
     </script>
