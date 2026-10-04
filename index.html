@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Бот Бандит WebApp</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f1015;
+            --card-bg: rgba(26, 29, 38, 0.95);
+            --accent-gold: #ffb703;
+            --accent-green: #2ec4b6;
+            --accent-red: #e71d36;
+            --text-color: #ffffff;
+            --text-dim: #8d99ae;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* Шапка ресурсов */
+        .header {
+            background: var(--card-bg);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+        }
+
+        .resource-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .resource-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .resource-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .val-money { color: var(--accent-green); }
+        .val-authority { color: var(--accent-gold); }
+        .val-energy { color: #3a86ff; }
+
+        /* Контентные экраны */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        /* Персонаж на Canvas */
+        .avatar-container {
+            text-align: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        canvas#avatarCanvas {
+            background: radial-gradient(circle, rgba(255,183,3,0.15) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+        }
+
+        /* Карточки действий и бизнеса */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
+        /* Кнопки */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary { background: var(--accent-green); color: #000; }
+        .btn-gold { background: var(--accent-gold); color: #000; }
+        .btn-action { background: #3a86ff; color: #fff; }
+
+        /* Прогресс-бар */
+        .progress-bar-bg {
+            background: rgba(255,255,255,0.1);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .progress-bar-fill {
+            background: #3a86ff;
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        /* Нижнее меню навигации */
+        .nav-bar {
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-dim);
+            font-size: 11px;
+            cursor: pointer;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .nav-item.active {
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+
+        .nav-icon {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Шапка с ресурсами -->
+    <div class="header">
+        <div class="resource-item">
+            <span class="resource-label">Наличка</span>
+            <span class="resource-value val-money" id="res-money">$0</span>
+        </div>
+        <div class="resource-item">
+            <span class="resource-label">Авторитет</span>
+            <span class="resource-value val-authority" id="res-authority">⭐️ 0</span>
+        </div>
+        <div class="resource-item">
+            <span class="resource-label">Энергия</span>
+            <span class="resource-value val-energy" id="res-energy">⚡️ 100/100</span>
+        </div>
+    </div>
+
+    <!-- Вкладка 1: Профиль и Персонаж -->
+    <div id="page-profile" class="content active">
+        <div class="avatar-container">
+            <canvas id="avatarCanvas" width="160" height="160"></canvas>
+            <div style="font-size: 18px; font-weight: bold; margin-top: 5px;" id="user-name">Бандит</div>
+            <div style="font-size: 12px; color: var(--text-dim);" id="user-status">Новичк на районе</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">👊 Суета на районе</span>
+            </div>
+            <div class="card-desc">Покрутиться на районе и заработать немного легких денег. Тратит 15⚡️.</div>
+            <button class="btn btn-action" id="btn-work" onclick="doWork()">Работать (+$50)</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">☕️ Отдых и Восстановление</span>
+            </div>
+            <div class="card-desc">Быстро восстановить энергию за счет чилла.</div>
+            <button class="btn btn-primary" onclick="rest()">Отдохнуть (+50⚡️)</button>
+        </div>
+    </div>
+
+    <!-- Вкладка 2: Город и Бизнес -->
+    <div id="page-city" class="content">
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">Твой Бизнес (Пассивный доход)</div>
+        <div id="business-list"></div>
+    </div>
+
+    <!-- Вкладка 3: Имущество -->
+    <div id="page-property" class="content">
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">Автосалон и Недвижимость</div>
+        <div id="property-list"></div>
+    </div>
+
+    <!-- Нижняя навигация -->
+    <div class="nav-bar">
+        <div class="nav-item active" onclick="switchTab('profile', this)">
+            <span class="nav-icon">👤</span>
+            <span>Профиль</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('city', this)">
+            <span class="nav-icon">🏙️</span>
+            <span>Город</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('property', this)">
+            <span class="nav-icon">🚗</span>
+            <span>Имущество</span>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Состояние игры
+        let state = {
+            money: 100,
+            authority: 0,
+            energy: 100,
+            maxEnergy: 100,
+            businesses: [
+                { id: 'shaurma', title: 'Шаурмичная', cost: 150, income: 2, count: 0, icon: '🥙' },
+                { id: 'carwash', title: 'Автомойка', cost: 800, income: 12, count: 0, icon: '🚗' },
+                { id: 'club', title: 'Ночной Клуб', cost: 5000, income: 75, count: 0, icon: '🎙️' }
+            ],
+            properties: [
+                { id: 'chain', title: 'Золотая цепь', cost: 300, authority: 10, bought: false, icon: '⛓️' },
+                { id: 'bmw', title: 'Черная Бэха', cost: 2500, authority: 80, bought: false, icon: '🚘' },
+                { id: 'penthouse', title: 'Пентхаус в центре', cost: 15000, authority: 500, bought: false, icon: '🏙️' }
+            ]
+        };
+
+        // Загрузка / Сохранение
+        function loadState() {
+            const saved = localStorage.getItem('bandit_game_state_v1');
+            if (saved) {
+                state = Object.assign(state, JSON.parse(saved));
+            }
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                document.getElementById('user-name').innerText = tg.initDataUnsafe.user.first_name || 'Бандит';
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('bandit_game_state_v1', JSON.stringify(state));
+            updateUI();
+        }
+
+        function triggerVibro() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        // Переключение вкладок
+        function switchTab(tabId, el) {
+            triggerVibro();
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(`page-${tabId}`).classList.add('active');
+            if (el) el.classList.add('active');
+        }
+
+        // Отрисовка персонажа на Canvas
+        function drawAvatar() {
+            const canvas = document.getElementById('avatarCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Тело / Худи
+            ctx.fillStyle = '#22252f';
+            ctx.beginPath();
+            ctx.arc(80, 150, 45, Math.PI, 0, false);
+            ctx.fill();
+
+            // Голова
+            ctx.fillStyle = '#ffdbac';
+            ctx.beginPath();
+            ctx.arc(80, 80, 32, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Очки Бандита
+            ctx.fillStyle = '#111';
+            ctx.fillRect(58, 72, 20, 12);
+            ctx.fillRect(82, 72, 20, 12);
+            ctx.fillRect(75, 75, 10, 3);
+
+            // Золотая цепь (если куплена)
+            if (state.properties.find(p => p.id === 'chain' && p.bought)) {
+                ctx.strokeStyle = '#ffb703';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(80, 105, 20, 0, Math.PI);
+                ctx.stroke();
+            }
+        }
+
+        // Действия
+        function doWork() {
+            if (state.energy >= 15) {
+                state.energy -= 15;
+                state.money += 50;
+                triggerVibro();
+                saveState();
+            }
+        }
+
+        function rest() {
+            if (state.energy < state.maxEnergy) {
+                state.energy = Math.min(state.maxEnergy, state.energy + 50);
+                triggerVibro();
+                saveState();
+            }
+        }
+
+        function buyBusiness(index) {
+            const b = state.businesses[index];
+            if (state.money >= b.cost) {
+                state.money -= b.cost;
+                b.count++;
+                b.cost = Math.round(b.cost * 1.3); // Увеличение цены
+                triggerVibro();
+                saveState();
+            }
+        }
+
+        function buyProperty(index) {
+            const p = state.properties[index];
+            if (state.money >= p.cost && !p.bought) {
+                state.money -= p.cost;
+                p.bought = true;
+                state.authority += p.authority;
+                triggerVibro();
+                drawAvatar();
+                saveState();
+            }
+        }
+
+        // Обновление интерфейса
+        function updateUI() {
+            document.getElementById('res-money').innerText = `$${state.money.toLocaleString()}`;
+            document.getElementById('res-authority').innerText = `⭐️ ${state.authority}`;
+            document.getElementById('res-energy').innerText = `⚡️ ${state.energy}/${state.maxEnergy}`;
+
+            // Доступность кнопки работы
+            document.getElementById('btn-work').disabled = state.energy < 15;
+
+            // Статус в профиле
+            let status = 'Новичок на районе';
+            if (state.authority >= 50) status = 'Уважаемый пацан';
+            if (state.authority >= 200) status = 'Авторитет города';
+            if (state.authority >= 500) status = 'Теневой Барон';
+            document.getElementById('user-status').innerText = status;
+
+            // Отрисовка списка бизнесов
+            const bizContainer = document.getElementById('business-list');
+            bizContainer.innerHTML = state.businesses.map((b, i) => `
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">${b.icon} ${b.title} (${b.count})</span>
+                        <span class="val-money">+$${b.count * b.income}/сек</span>
+                    </div>
+                    <div class="card-desc">Приносит $${b.income}/сек с одного заведения.</div>
+                    <button class="btn btn-gold" ${state.money < b.cost ? 'disabled' : ''} onclick="buyBusiness(${i})">
+                        Купить за $${b.cost.toLocaleString()}
+                    </button>
+                </div>
+            `).join('');
+
+            // Отрисовка списка имущества
+            const propContainer = document.getElementById('property-list');
+            propContainer.innerHTML = state.properties.map((p, i) => `
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">${p.icon} ${p.title}</span>
+                        <span class="val-authority">+⭐️ ${p.authority}</span>
+                    </div>
+                    ${p.bought 
+                        ? `<button class="btn" disabled style="background:#222; color:#555;">Уже куплено</button>`
+                        : `<button class="btn btn-primary" ${state.money < p.cost ? 'disabled' : ''} onclick="buyProperty(${i})">                              Купить за $${p.cost.toLocaleString()}
+                           </button>`
+                    }
+                </div>
+            `).join('');
+        }
+
+        // Игровой цикл (1 раз в секунду)
+        setInterval(() => {
+            // Сбор пассивного дохода
+            let passiveIncome = 0;
+            state.businesses.forEach(b => {
+                passiveIncome += b.count * b.income;
+            });
+            state.money += passiveIncome;
+
+            // Авто-восстановление энергии (1⚡️ в секунду)
+            if (state.energy < state.maxEnergy) {
+                state.energy = Math.min(state.maxEnergy, state.energy + 1);
+            }
+
+            saveState();
+        }, 1000);
+
+        // Инициализация
+        loadState();
+        drawAvatar();
+    </script>
+</body>
+</html>
